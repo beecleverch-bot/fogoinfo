@@ -4,10 +4,10 @@ export const SITE = {
     "Le média de référence pour l'actualité guinéenne, africaine et mondiale. Analyses, vidéos et reportages.",
   directeurPublication: "",
   contact: {
-    email: "",
-    telephone: "",
+    email: "fogoinfo24@gmail.com",
+    telephones: ["+224 625 63 58 86", "+224 623 19 78 59", "+41 76 610 05 62"],
     whatsapp: "",
-    adresse: "",
+    adresse: "Conakry, Guinée",
   },
   reseaux: {
     facebook: "",

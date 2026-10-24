@@ -5,12 +5,12 @@ import { RESEAUX_LABELS, SITE } from "@/lib/site";
 export function Footer() {
   const { contact } = SITE;
   const reseaux = (Object.keys(SITE.reseaux) as (keyof typeof SITE.reseaux)[]).filter((k) => SITE.reseaux[k]);
-  const aContact = contact.email || contact.telephone || contact.whatsapp || contact.adresse;
+  const aContact = contact.email || contact.telephones.length > 0 || contact.whatsapp || contact.adresse;
 
   return (
     <footer className="mt-16 bg-ink text-white/80">
       <div className="flag-stripe h-1" />
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-4">
+      <div className={`mx-auto grid max-w-7xl gap-10 px-4 py-12 ${reseaux.length ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <div>
           <p className="font-serif text-3xl font-black text-white">
             <span className="text-brand">Fogo</span>info
@@ -45,17 +45,17 @@ export function Footer() {
             {contact.email && (
               <li>
                 <a href={`mailto:${contact.email}`} className="hover:text-white">
-                  {contact.email}
+                  E-mail : {contact.email}
                 </a>
               </li>
             )}
-            {contact.telephone && (
-              <li>
-                <a href={`tel:${contact.telephone.replace(/\s/g, "")}`} className="hover:text-white">
-                  {contact.telephone}
+            {contact.telephones.map((tel) => (
+              <li key={tel}>
+                <a href={`tel:${tel.replace(/\s/g, "")}`} className="hover:text-white">
+                  Tél : {tel}
                 </a>
               </li>
-            )}
+            ))}
             {contact.whatsapp && (
               <li>
                 <a
