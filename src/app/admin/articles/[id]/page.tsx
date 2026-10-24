@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { buttonClass, Field, inputClass, useAdmin } from "@/components/admin/AdminGate";
 import { ImageUpload } from "@/components/admin/ImageUpload";
-import { CATEGORIES_ARTICLE } from "@/lib/categories";
+import { CATEGORIES_ARTICLE, PAYS_SUGGERES } from "@/lib/categories";
 
 type Form = {
   titre: string;
@@ -17,6 +17,7 @@ type Form = {
   date_publication: string;
   est_une: boolean;
   tags: string;
+  pays: string;
 };
 
 const vide: Form = {
@@ -29,6 +30,7 @@ const vide: Form = {
   date_publication: toLocalInput(new Date().toISOString()),
   est_une: false,
   tags: "",
+  pays: "Guinée",
 };
 
 function toLocalInput(iso: string) {
@@ -39,9 +41,10 @@ function toLocalInput(iso: string) {
 export default function EditArticle() {
   const { id } = useParams<{ id: string }>();
   const nouveau = id === "nouveau";
-  const { supabase } = useAdmin();
+  const { supabase, isSuper, pays } = useAdmin();
   const router = useRouter();
-  const [form, setForm] = useState<Form | null>(nouveau ? vide : null);
+  // Un rédacteur publie toujours dans son pays.
+  const [form, setForm] = useState<Form | null>(nouveau ? { ...vide, pays: (isSuper ? vide.pays : pays) ?? "" } : null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -64,6 +67,7 @@ export default function EditArticle() {
           date_publication: toLocalInput(data.date_publication),
           est_une: data.est_une,
           tags: (data.tags ?? []).join(", "),
+          pays: data.pays ?? "",
         });
       });
   }, [id, nouveau, supabase]);
@@ -87,13 +91,23 @@ export default function EditArticle() {
       date_publication: new Date(form.date_publication).toISOString(),
       est_une: form.est_une,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      pays: isSuper ? form.pays.trim() || null : pays,
     };
-    const { error } = nouveau
-      ? await supabase.from("articles").insert(row)
-      : await supabase.from("articles").update(row).eq("id", id);
+    const { data, error } = nouveau
+      ? await supabase.from("articles").insert(row).select("id")
+      : await supabase.from("articles").update(row).eq("id", id).select("id");
     setSaving(false);
-    if (error) setError(error.message);
-    else router.push("/admin");
+    if (error) {
+      setError(
+        error.code === "42501"
+          ? `Vous ne pouvez publier que des articles du pays « ${pays ?? "?"} ».`
+          : error.message,
+      );
+    } else if (!data?.length) {
+      setError("Vous n'avez pas le droit de modifier cet article (autre pays).");
+    } else {
+      router.push("/admin");
+    }
   }
 
   if (!form) return <p className="text-muted">{error || "Chargement…"}</p>;
@@ -114,7 +128,7 @@ export default function EditArticle() {
         <Field label="Sous-titre / chapô">
           <input value={form.soustitre} onChange={(e) => set("soustitre", e.target.value)} className={inputClass} />
         </Field>
-        <div className="grid gap-5 sm:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Rubrique">
             <select value={form.categorie} onChange={(e) => set("categorie", e.target.value)} className={inputClass}>
               {CATEGORIES_ARTICLE.map((c) => (
@@ -124,6 +138,25 @@ export default function EditArticle() {
           </Field>
           <Field label="Auteur">
             <input value={form.auteur} onChange={(e) => set("auteur", e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Pays" hint={isSuper ? "Seuls les rédacteurs de ce pays pourront le modifier." : undefined}>
+            {isSuper ? (
+              <>
+                <input
+                  list="pays-suggeres"
+                  value={form.pays}
+                  onChange={(e) => set("pays", e.target.value)}
+                  className={inputClass}
+                />
+                <datalist id="pays-suggeres">
+                  {PAYS_SUGGERES.map((p) => (
+                    <option key={p} value={p} />
+                  ))}
+                </datalist>
+              </>
+            ) : (
+              <input value={pays ?? ""} disabled className={`${inputClass} bg-soft`} />
+            )}
           </Field>
           <Field label="Date de publication">
             <input
@@ -147,10 +180,12 @@ export default function EditArticle() {
         <Field label="Mots-clés" hint="Séparés par des virgules.">
           <input value={form.tags} onChange={(e) => set("tags", e.target.value)} className={inputClass} />
         </Field>
-        <label className="flex items-center gap-2 font-semibold">
-          <input type="checkbox" checked={form.est_une} onChange={(e) => set("est_une", e.target.checked)} />
-          Mettre à la une
-        </label>
+        {isSuper && (
+          <label className="flex items-center gap-2 font-semibold">
+            <input type="checkbox" checked={form.est_une} onChange={(e) => set("est_une", e.target.checked)} />
+            Mettre à la une
+          </label>
+        )}
       </div>
 
       {error && <p className="text-brand">{error}</p>}

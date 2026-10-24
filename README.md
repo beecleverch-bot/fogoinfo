@@ -45,6 +45,12 @@ npm run dev        # http://localhost:3000 (mode démo)
 
 ## Administration
 
+Exécutez aussi `supabase/002_roles_pays.sql` (rôles et pays) après `schema.sql`.
+
+- **Super admin** : gère tout (articles de tous les pays, « à la une », vidéos, administrateurs, import).
+- **Rédacteur** : rattaché à un pays, il ajoute, modifie et supprime uniquement les articles de ce pays.
+  Ces règles sont appliquées par la base de données elle-même.
+
 Connexion sur `/admin` avec un lien envoyé par e-mail. Seules les adresses présentes dans la table `admins` ont accès.
 Un administrateur peut en ajouter d'autres depuis l'onglet *Administrateurs* : la personne invitée se connecte
 ensuite simplement sur `/admin` avec son adresse.

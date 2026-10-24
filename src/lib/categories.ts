@@ -73,3 +73,6 @@ export function rubriqueFor(categorie: string): Rubrique | undefined {
 export function getRubrique(slug: string): Rubrique | undefined {
   return RUBRIQUES.find((r) => r.slug === slug);
 }
+
+// Pays proposés pour répartir le travail entre rédacteurs (liste libre).
+export const PAYS_SUGGERES = ["Guinée", "Suisse", "France", "Sénégal", "Côte d'Ivoire", "Mali", "États-Unis"];

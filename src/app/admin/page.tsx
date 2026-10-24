@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/format";
 import type { Article } from "@/lib/types";
 
 export default function AdminArticles() {
-  const { supabase } = useAdmin();
+  const { supabase, isSuper, pays } = useAdmin();
   const [articles, setArticles] = useState<Article[] | null>(null);
   const [filtre, setFiltre] = useState("");
 
@@ -32,14 +32,17 @@ export default function AdminArticles() {
     else setArticles((list) => list!.map((x) => (x.id === a.id ? { ...x, est_une: !a.est_une } : x)));
   }
 
-  const visibles = (articles ?? []).filter((a) =>
-    `${a.titre} ${a.categorie} ${a.auteur}`.toLowerCase().includes(filtre.toLowerCase()),
-  );
+  // Un rédacteur ne voit que les articles de son pays.
+  const visibles = (articles ?? [])
+    .filter((a) => isSuper || a.pays === pays)
+    .filter((a) =>
+      `${a.titre} ${a.categorie} ${a.auteur} ${a.pays ?? ""}`.toLowerCase().includes(filtre.toLowerCase()),
+    );
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-serif text-3xl font-black">Articles</h1>
+        <h1 className="font-serif text-3xl font-black">Articles{!isSuper && pays && ` · ${pays}`}</h1>
         <Link href="/admin/articles/nouveau" className={buttonClass}>
           + Nouvel article
         </Link>
@@ -59,6 +62,7 @@ export default function AdminArticles() {
               <tr>
                 <th className="p-3">Titre</th>
                 <th className="p-3">Rubrique</th>
+                {isSuper && <th className="p-3">Pays</th>}
                 <th className="p-3">Date</th>
                 <th className="p-3 text-right">Vues</th>
                 <th className="p-3 text-center">À la une</th>
@@ -75,10 +79,17 @@ export default function AdminArticles() {
                     {a.auteur && <p className="text-xs text-muted">{a.auteur}</p>}
                   </td>
                   <td className="p-3">{a.categorie}</td>
+                  {isSuper && <td className="p-3">{a.pays ?? "—"}</td>}
                   <td className="whitespace-nowrap p-3">{formatDate(a.date_publication)}</td>
                   <td className="p-3 text-right">{a.vues}</td>
                   <td className="p-3 text-center">
-                    <input type="checkbox" checked={a.est_une} onChange={() => basculerUne(a)} aria-label="À la une" />
+                    <input
+                      type="checkbox"
+                      checked={a.est_une}
+                      disabled={!isSuper}
+                      onChange={() => basculerUne(a)}
+                      aria-label="À la une"
+                    />
                   </td>
                   <td className="whitespace-nowrap p-3 text-right">
                     <Link href={`/article/${a.id}`} target="_blank" className="mr-3 text-muted hover:text-ink">
@@ -95,7 +106,7 @@ export default function AdminArticles() {
               ))}
               {visibles.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-muted">
+                  <td colSpan={isSuper ? 7 : 6} className="p-6 text-center text-muted">
                     Aucun article.
                   </td>
                 </tr>

@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { browserClient, isSupabaseConfigured } from "@/lib/supabase";
 
-type Ctx = { supabase: SupabaseClient; email: string };
+export type Profil = { role: "super" | "redacteur"; pays: string | null };
+type Ctx = { supabase: SupabaseClient; email: string; isSuper: boolean; pays: string | null };
 const AdminContext = createContext<Ctx | null>(null);
 
 export function useAdmin() {
@@ -35,7 +36,8 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
 function Gate({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => browserClient(), []);
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [isAdmin, setIsAdmin] = useState<boolean | undefined>(undefined);
+  // null = pas administrateur, undefined = en cours de vérification
+  const [profil, setProfil] = useState<Profil | null | undefined>(undefined);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -45,10 +47,22 @@ function Gate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!session) return;
-    supabase.rpc("is_admin").then(({ data }) => setIsAdmin(Boolean(data)));
+    const email = (session.user.email ?? "").toLowerCase();
+    supabase
+      .from("admins")
+      .select("role, pays")
+      .eq("email", email)
+      .maybeSingle()
+      .then(async ({ data, error }) => {
+        if (!error) return setProfil((data as Profil | null) ?? null);
+        // Base pas encore migrée (supabase/002_roles_pays.sql) : ancien modèle,
+        // tout administrateur a tous les droits.
+        const { data: admin } = await supabase.rpc("is_admin");
+        setProfil(admin ? { role: "super", pays: null } : null);
+      });
   }, [session, supabase]);
 
-  if (session === undefined || (session && isAdmin === undefined)) {
+  if (session === undefined || (session && profil === undefined)) {
     return (
       <Shell>
         <p className="py-20 text-center text-muted">Chargement…</p>
@@ -63,7 +77,7 @@ function Gate({ children }: { children: React.ReactNode }) {
     );
   }
   const email = session.user.email ?? "";
-  if (!isAdmin) {
+  if (!profil) {
     return (
       <Shell>
         <Card>
@@ -80,8 +94,13 @@ function Gate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AdminContext.Provider value={{ supabase, email }}>
-      <Shell email={email} onSignOut={() => supabase.auth.signOut()}>
+    <AdminContext.Provider value={{ supabase, email, isSuper: profil.role === "super", pays: profil.pays }}>
+      <Shell
+        email={email}
+        badge={profil.role === "super" ? "Super admin" : `Rédacteur · ${profil.pays ?? "sans pays"}`}
+        isSuper={profil.role === "super"}
+        onSignOut={() => supabase.auth.signOut()}
+      >
         {children}
       </Shell>
     </AdminContext.Provider>
@@ -139,13 +158,20 @@ function Login({ supabase }: { supabase: SupabaseClient }) {
   );
 }
 
+// Pages réservées au super admin.
+const PAGES_SUPER = ["/admin/videos", "/admin/inviter", "/admin/import"];
+
 function Shell({
   children,
   email,
+  badge,
+  isSuper = false,
   onSignOut,
 }: {
   children: React.ReactNode;
   email?: string;
+  badge?: string;
+  isSuper?: boolean;
   onSignOut?: () => void;
 }) {
   const pathname = usePathname();
@@ -154,7 +180,8 @@ function Shell({
     { href: "/admin/videos", label: "Vidéos" },
     { href: "/admin/inviter", label: "Administrateurs" },
     { href: "/admin/import", label: "Import Base44" },
-  ];
+  ].filter((t) => isSuper || !PAGES_SUPER.includes(t.href));
+  const interdit = Boolean(email) && !isSuper && PAGES_SUPER.some((p) => pathname.startsWith(p));
   return (
     <div className="min-h-screen bg-soft">
       <div className="flag-stripe h-1" />
@@ -170,6 +197,7 @@ function Shell({
             {email && (
               <>
                 <span className="hidden text-white/50 sm:inline">{email}</span>
+                {badge && <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-gold">{badge}</span>}
                 <button onClick={onSignOut} className="font-semibold text-gold">
                   Déconnexion
                 </button>
@@ -194,7 +222,16 @@ function Shell({
           </nav>
         )}
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        {interdit ? (
+          <Card>
+            <h1 className="text-xl font-bold">Réservé au super admin</h1>
+            <p className="mt-2 text-muted">Votre compte rédacteur permet de gérer les articles de votre pays.</p>
+          </Card>
+        ) : (
+          children
+        )}
+      </main>
     </div>
   );
 }

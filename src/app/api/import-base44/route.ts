@@ -23,9 +23,11 @@ export async function POST(request: Request) {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false },
   });
-  const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (!isAdmin) {
-    return Response.json({ error: "Réservé aux administrateurs." }, { status: 403 });
+  // Avant la migration 002 (rôles), is_super_admin n'existe pas : on retombe sur is_admin.
+  const superRes = await supabase.rpc("is_super_admin");
+  const autorise = superRes.error ? (await supabase.rpc("is_admin")).data : superRes.data;
+  if (!autorise) {
+    return Response.json({ error: "Réservé au super admin." }, { status: 403 });
   }
 
   const log: string[] = [];

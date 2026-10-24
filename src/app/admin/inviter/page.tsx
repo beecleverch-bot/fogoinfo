@@ -1,21 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { buttonClass, inputClass, useAdmin } from "@/components/admin/AdminGate";
+import { useCallback, useEffect, useState } from "react";
+import { buttonClass, inputClass, useAdmin, type Profil } from "@/components/admin/AdminGate";
+import { PAYS_SUGGERES } from "@/lib/categories";
 import { formatDate } from "@/lib/format";
 
-type Admin = { email: string; invited_by: string | null; created_at: string };
+type Admin = Profil & { email: string; invited_by: string | null; created_at: string };
 
 export default function InviterAdmin() {
   const { supabase, email: moi } = useAdmin();
   const [admins, setAdmins] = useState<Admin[] | null>(null);
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<Profil["role"]>("redacteur");
+  const [pays, setPays] = useState("Guinée");
   const [message, setMessage] = useState("");
 
-  async function charger() {
+  const charger = useCallback(async () => {
     const { data } = await supabase.from("admins").select("*").order("created_at");
     setAdmins((data as Admin[]) ?? []);
-  }
+  }, [supabase]);
 
   useEffect(() => {
     supabase
@@ -28,16 +31,28 @@ export default function InviterAdmin() {
   async function inviter(e: React.FormEvent) {
     e.preventDefault();
     const adresse = email.trim().toLowerCase();
-    const { error } = await supabase.from("admins").insert({ email: adresse, invited_by: moi });
+    const { error } = await supabase.from("admins").insert({
+      email: adresse,
+      invited_by: moi,
+      role,
+      pays: role === "redacteur" ? pays.trim() : null,
+    });
     if (error) {
-      setMessage(error.code === "23505" ? "Cette adresse est déjà administrateur." : error.message);
+      setMessage(error.code === "23505" ? "Cette adresse est déjà dans la liste." : error.message);
       return;
     }
     setEmail("");
     setMessage(
-      `${adresse} est maintenant administrateur. Il suffit de se connecter sur ${window.location.origin}/admin avec cette adresse.`,
+      `${adresse} est ajouté comme ${role === "super" ? "super admin" : `rédacteur (${pays})`}. ` +
+        `Il suffit de se connecter sur ${window.location.origin}/admin avec cette adresse.`,
     );
     charger();
+  }
+
+  async function modifier(a: Admin, changes: Partial<Profil>) {
+    const { error } = await supabase.from("admins").update(changes).eq("email", a.email);
+    if (error) alert(error.message);
+    else charger();
   }
 
   async function retirer(a: Admin) {
@@ -48,11 +63,14 @@ export default function InviterAdmin() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl">
       <h1 className="font-serif text-3xl font-black">Administrateurs</h1>
-      <p className="mt-1 text-muted">Les administrateurs peuvent publier, modifier et supprimer les articles et vidéos.</p>
+      <p className="mt-1 text-muted">
+        Un <strong>rédacteur</strong> ajoute, modifie et supprime uniquement les articles de son pays. Le{" "}
+        <strong>super admin</strong> gère tout : articles de tous les pays, « à la une », vidéos, administrateurs.
+      </p>
 
-      <form onSubmit={inviter} className="mt-6 flex flex-col gap-3 rounded-lg bg-paper p-5 shadow-sm sm:flex-row">
+      <form onSubmit={inviter} className="mt-6 grid gap-3 rounded-lg bg-paper p-5 shadow-sm sm:grid-cols-[2fr_1fr_1fr_auto]">
         <input
           type="email"
           required
@@ -61,29 +79,70 @@ export default function InviterAdmin() {
           placeholder="adresse@exemple.com"
           className={inputClass}
         />
-        <button className={`${buttonClass} whitespace-nowrap`}>Inviter</button>
+        <select value={role} onChange={(e) => setRole(e.target.value as Profil["role"])} className={inputClass}>
+          <option value="redacteur">Rédacteur</option>
+          <option value="super">Super admin</option>
+        </select>
+        <input
+          list="pays-suggeres"
+          required={role === "redacteur"}
+          disabled={role === "super"}
+          value={role === "super" ? "Tous les pays" : pays}
+          onChange={(e) => setPays(e.target.value)}
+          placeholder="Pays"
+          className={inputClass}
+        />
+        <datalist id="pays-suggeres">
+          {PAYS_SUGGERES.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
+        <button className={`${buttonClass} whitespace-nowrap`}>Ajouter</button>
       </form>
       {message && <p className="mt-3 rounded bg-leaf/10 p-3 text-sm text-leaf">{message}</p>}
 
       <ul className="mt-6 divide-y divide-line rounded-lg bg-paper shadow-sm">
-        {(admins ?? []).map((a) => (
-          <li key={a.email} className="flex items-center justify-between p-4">
-            <div>
-              <p className="font-semibold">
-                {a.email} {a.email === moi.toLowerCase() && <span className="text-xs text-muted">(vous)</span>}
-              </p>
-              <p className="text-xs text-muted">
-                Ajouté le {formatDate(a.created_at)}
-                {a.invited_by && <> par {a.invited_by}</>}
-              </p>
-            </div>
-            {a.email !== moi.toLowerCase() && (
-              <button onClick={() => retirer(a)} className="text-sm text-brand hover:underline">
-                Retirer
-              </button>
-            )}
-          </li>
-        ))}
+        {(admins ?? []).map((a) => {
+          const estMoi = a.email === moi.toLowerCase();
+          return (
+            <li key={a.email} className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <p className="font-semibold">
+                  {a.email} {estMoi && <span className="text-xs text-muted">(vous)</span>}
+                </p>
+                <p className="text-xs text-muted">
+                  Ajouté le {formatDate(a.created_at)}
+                  {a.invited_by && <> par {a.invited_by}</>}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <select
+                  value={a.role}
+                  disabled={estMoi}
+                  onChange={(e) => modifier(a, { role: e.target.value as Profil["role"] })}
+                  className="rounded border border-line px-2 py-1"
+                >
+                  <option value="redacteur">Rédacteur</option>
+                  <option value="super">Super admin</option>
+                </select>
+                {a.role === "redacteur" && (
+                  <input
+                    list="pays-suggeres"
+                    defaultValue={a.pays ?? ""}
+                    onBlur={(e) => e.target.value.trim() !== (a.pays ?? "") && modifier(a, { pays: e.target.value.trim() })}
+                    placeholder="Pays"
+                    className="w-32 rounded border border-line px-2 py-1"
+                  />
+                )}
+                {!estMoi && (
+                  <button onClick={() => retirer(a)} className="text-brand hover:underline">
+                    Retirer
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

@@ -10,6 +10,7 @@ export type Article = {
   vues: number;
   est_une: boolean;
   tags: string[];
+  pays?: string | null;
 };
 
 export type Video = {
