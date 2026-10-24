@@ -153,6 +153,7 @@ function Shell({
     { href: "/admin", label: "Articles" },
     { href: "/admin/videos", label: "Vidéos" },
     { href: "/admin/inviter", label: "Administrateurs" },
+    { href: "/admin/import", label: "Import Base44" },
   ];
   return (
     <div className="min-h-screen bg-soft">

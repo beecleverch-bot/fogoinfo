@@ -1,8 +1,8 @@
 import { createBrowserClient, createServerClient } from "@supabase/ssr";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+export const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 // Accepte les noms de variable proposés par le bouton « Connect » de Supabase.
-const anonKey =
+export const anonKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
