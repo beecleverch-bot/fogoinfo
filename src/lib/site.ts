@@ -10,7 +10,7 @@ export const SITE = {
     adresse: "Conakry, Guinée",
   },
   reseaux: {
-    facebook: "",
+    facebook: "https://www.facebook.com/people/Fogoinfo/61566688390287/",
     youtube: "",
     tiktok: "",
     x: "",
