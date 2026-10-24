@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fogoinfo
 
-## Getting Started
+Reconstruction indépendante de [fogoinfos.com](https://fogoinfos.com) (anciennement sur Base44).
 
-First, run the development server:
+- **Next.js 16** (App Router) + **Tailwind CSS 4**
+- **Supabase** : base de données (articles, vidéos, administrateurs), connexion par lien e-mail, stockage des images
+- Sans Supabase configuré, le site tourne en **mode démo** sur `src/data/seed.json`.
+
+## Pages
+
+| URL | Contenu |
+| --- | --- |
+| `/` | Accueil : à la une, dernières actualités, les plus lus, tribunes, vidéos, rubriques |
+| `/actualites`, `/politique`, `/economie`, `/societe`, `/culture`, `/international`, `/tribunes` | Rubriques |
+| `/article/[id]` | Article (compteur de vues, partage, articles liés) |
+| `/videos`, `/videos/[id]` | Vidéos (YouTube ou fichier) |
+| `/recherche?q=` | Recherche |
+| `/admin` | Espace rédaction : articles, vidéos, administrateurs |
+
+Les anciennes adresses Base44 (`/Politique`, `/Article?id=…`, `/InviterAdmin`…) redirigent vers les nouvelles (`src/proxy.ts`).
+
+## Lancer en local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000 (mode démo)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Mise en production
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Supabase** : créez un projet sur [supabase.com](https://supabase.com), puis exécutez `supabase/schema.sql` dans *SQL Editor*.
+   Le script crée les tables, la sécurité (lecture publique, écriture réservée aux admins), le bucket d'images `media`,
+   et ajoute les premiers administrateurs (modifiez la liste en bas du fichier si besoin).
+2. **Authentification** : dans *Authentication > URL Configuration*, mettez l'adresse du site dans *Site URL*
+   et ajoutez `https://votre-domaine/admin` dans *Redirect URLs*.
+3. **Variables** : copiez `.env.example` en `.env.local` et remplissez les clés (*Project Settings > API*).
+4. **Import des données Base44** (articles, vidéos et copie des images dans Supabase) :
+   ```bash
+   SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… node scripts/import-base44.mjs
+   ```
+   `node scripts/import-base44.mjs --export` fait seulement une sauvegarde JSON.
+   À faire **avant** de fermer l'application Base44, sinon les images hébergées chez Base44 seront perdues.
+5. **Hébergement** : importez le dépôt sur [Vercel](https://vercel.com) (ou tout hébergeur Node), renseignez les mêmes
+   variables d'environnement, puis pointez le domaine `fogoinfos.com` vers le nouvel hébergement.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Administration
 
-## Learn More
+Connexion sur `/admin` avec un lien envoyé par e-mail. Seules les adresses présentes dans la table `admins` ont accès.
+Un administrateur peut en ajouter d'autres depuis l'onglet *Administrateurs* : la personne invitée se connecte
+ensuite simplement sur `/admin` avec son adresse.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Les pages publiques sont mises en cache 60 secondes : une modification apparaît sur le site en moins d'une minute.
