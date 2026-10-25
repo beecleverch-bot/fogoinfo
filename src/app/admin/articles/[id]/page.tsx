@@ -42,10 +42,10 @@ function toLocalInput(iso: string) {
 export default function EditArticle() {
   const { id } = useParams<{ id: string }>();
   const nouveau = id === "nouveau";
-  const { supabase, isSuper, pays } = useAdmin();
+  const { supabase, peutGerer, pays } = useAdmin();
   const router = useRouter();
   // Un rédacteur publie toujours dans son pays.
-  const [form, setForm] = useState<Form | null>(nouveau ? { ...vide, pays: (isSuper ? vide.pays : pays) ?? "" } : null);
+  const [form, setForm] = useState<Form | null>(nouveau ? { ...vide, pays: (peutGerer ? vide.pays : pays) ?? "" } : null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -92,7 +92,7 @@ export default function EditArticle() {
       date_publication: new Date(form.date_publication).toISOString(),
       est_une: form.est_une,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      pays: isSuper ? form.pays.trim() || null : pays,
+      pays: peutGerer ? form.pays.trim() || null : pays,
     };
     const { data, error } = nouveau
       ? await supabase.from("articles").insert(row).select("id")
@@ -140,8 +140,8 @@ export default function EditArticle() {
           <Field label="Auteur">
             <input value={form.auteur} onChange={(e) => set("auteur", e.target.value)} className={inputClass} />
           </Field>
-          <Field label="Pays" hint={isSuper ? "Seuls les rédacteurs de ce pays pourront le modifier." : undefined}>
-            {isSuper ? (
+          <Field label="Pays" hint={peutGerer ? "Seuls les rédacteurs de ce pays pourront le modifier." : undefined}>
+            {peutGerer ? (
               <select value={form.pays} onChange={(e) => set("pays", e.target.value)} className={inputClass}>
                 <PaysOptions actuel={form.pays} />
               </select>
@@ -171,7 +171,7 @@ export default function EditArticle() {
         <Field label="Mots-clés" hint="Séparés par des virgules.">
           <input value={form.tags} onChange={(e) => set("tags", e.target.value)} className={inputClass} />
         </Field>
-        {isSuper && (
+        {peutGerer && (
           <label className="flex items-center gap-2 font-semibold">
             <input type="checkbox" checked={form.est_une} onChange={(e) => set("est_une", e.target.checked)} />
             Mettre à la une

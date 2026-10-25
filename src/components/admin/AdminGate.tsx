@@ -6,8 +6,10 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { browserClient, isSupabaseConfigured } from "@/lib/supabase";
 
-export type Profil = { role: "super" | "redacteur"; pays: string | null };
-type Ctx = { supabase: SupabaseClient; email: string; isSuper: boolean; pays: string | null };
+export type Profil = { role: "super" | "admin" | "redacteur"; pays: string | null };
+// isSuper : vous seul. peutGerer : super admin ou admin (contenu de tous les pays,
+// vidéos, rédacteurs).
+type Ctx = { supabase: SupabaseClient; email: string; isSuper: boolean; peutGerer: boolean; pays: string | null };
 const AdminContext = createContext<Ctx | null>(null);
 
 export function useAdmin() {
@@ -93,12 +95,16 @@ function Gate({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const isSuper = profil.role === "super";
+  const peutGerer = isSuper || profil.role === "admin";
+  const badge = isSuper ? "Super admin" : peutGerer ? "Admin" : `Rédacteur · ${profil.pays ?? "sans pays"}`;
   return (
-    <AdminContext.Provider value={{ supabase, email, isSuper: profil.role === "super", pays: profil.pays }}>
+    <AdminContext.Provider value={{ supabase, email, isSuper, peutGerer, pays: profil.pays }}>
       <Shell
         email={email}
-        badge={profil.role === "super" ? "Super admin" : `Rédacteur · ${profil.pays ?? "sans pays"}`}
-        isSuper={profil.role === "super"}
+        badge={badge}
+        isSuper={isSuper}
+        peutGerer={peutGerer}
         onSignOut={() => supabase.auth.signOut()}
       >
         {children}
@@ -115,12 +121,23 @@ function Login({ supabase }: { supabase: SupabaseClient }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
+    // Pas de lien pour une adresse inconnue : le quota d'e-mails est limité.
+    const { data: autorise, error: erreurCheck } = await supabase.rpc("email_autorise", { adresse: email });
+    if (!erreurCheck && autorise === false) {
+      setError("Cette adresse n'a pas accès à l'espace rédaction. Vérifiez l'orthographe, ou demandez à un administrateur de vous ajouter.");
+      setStatus("error");
+      return;
+    }
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}/admin` },
     });
     if (error) {
-      setError(error.message);
+      setError(
+        /rate limit/i.test(error.message)
+          ? "Trop de liens envoyés pour le moment. Réessayez dans une heure, ou utilisez le dernier lien reçu par e-mail."
+          : error.message,
+      );
       setStatus("error");
     } else {
       setStatus("sent");
@@ -158,20 +175,23 @@ function Login({ supabase }: { supabase: SupabaseClient }) {
   );
 }
 
-// Pages réservées au super admin.
-const PAGES_SUPER = ["/admin/videos", "/admin/inviter", "/admin/import"];
+// Pages réservées au super admin, et à l'équipe de gestion (super admin + admins).
+const PAGES_SUPER = ["/admin/import"];
+const PAGES_GESTION = ["/admin/videos", "/admin/inviter"];
 
 function Shell({
   children,
   email,
   badge,
   isSuper = false,
+  peutGerer = false,
   onSignOut,
 }: {
   children: React.ReactNode;
   email?: string;
   badge?: string;
   isSuper?: boolean;
+  peutGerer?: boolean;
   onSignOut?: () => void;
 }) {
   const pathname = usePathname();
@@ -180,15 +200,18 @@ function Shell({
     { href: "/admin/videos", label: "Vidéos" },
     { href: "/admin/inviter", label: "Administrateurs" },
     { href: "/admin/import", label: "Import Base44" },
-  ].filter((t) => isSuper || !PAGES_SUPER.includes(t.href));
-  const interdit = Boolean(email) && !isSuper && PAGES_SUPER.some((p) => pathname.startsWith(p));
+  ].filter((t) => (isSuper || !PAGES_SUPER.includes(t.href)) && (peutGerer || !PAGES_GESTION.includes(t.href)));
+  const interdit =
+    Boolean(email) &&
+    ((!isSuper && PAGES_SUPER.some((p) => pathname.startsWith(p))) ||
+      (!peutGerer && PAGES_GESTION.some((p) => pathname.startsWith(p))));
   return (
     <div className="min-h-screen bg-soft">
       <div className="flag-stripe h-1" />
-      <header className="bg-ink text-white">
+      <header className="bg-brand-dark text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link href="/admin" className="font-serif text-2xl font-black">
-            <span className="text-brand">Fogo</span>info <span className="text-sm font-normal text-white/60">rédaction</span>
+            Fogoinfo <span className="text-sm font-normal text-white/60">rédaction</span>
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <Link href="/" className="text-white/70 hover:text-white">
@@ -225,8 +248,8 @@ function Shell({
       <main className="mx-auto max-w-6xl px-4 py-8">
         {interdit ? (
           <Card>
-            <h1 className="text-xl font-bold">Réservé au super admin</h1>
-            <p className="mt-2 text-muted">Votre compte rédacteur permet de gérer les articles de votre pays.</p>
+            <h1 className="text-xl font-bold">Accès réservé</h1>
+            <p className="mt-2 text-muted">Cette page n&apos;est pas accessible avec votre compte.</p>
           </Card>
         ) : (
           children

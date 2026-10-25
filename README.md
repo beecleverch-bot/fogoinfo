@@ -45,9 +45,10 @@ npm run dev        # http://localhost:3000 (mode démo)
 
 ## Administration
 
-Exécutez aussi `supabase/002_roles_pays.sql` (rôles et pays) après `schema.sql`.
+Exécutez aussi `supabase/002_roles_pays.sql` puis `supabase/003_role_admin.sql` (rôles et pays) après `schema.sql`.
 
-- **Super admin** : gère tout (articles de tous les pays, « à la une », vidéos, administrateurs, import).
+- **Super admin** (un seul, beecleverch@gmail.com) : gère tout (articles, « à la une », vidéos, administrateurs, import).
+- **Admin** : articles de tous les pays, « à la une », vidéos ; ajoute ou retire des rédacteurs, mais pas d'admins.
 - **Rédacteur** : rattaché à un pays, il ajoute, modifie et supprime uniquement les articles de ce pays.
   Ces règles sont appliquées par la base de données elle-même.
 
