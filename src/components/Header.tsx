@@ -12,8 +12,8 @@ export function Header() {
   return (
     <header className="border-b border-line bg-paper">
       <div className="flag-stripe h-1" />
-      <div className="bg-ink text-xs text-white/80">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-1.5">
+      <div className="bg-brand text-sm text-white/90">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5">
           <Today />
           <span className="hidden sm:inline">Guinée · Afrique · Monde</span>
         </div>
