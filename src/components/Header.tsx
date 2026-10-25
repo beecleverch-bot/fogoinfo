@@ -26,7 +26,9 @@ export function Header() {
           <Image src="/logo.png" alt="" width={72} height={72} priority className="h-14 w-14 sm:h-[72px] sm:w-[72px]" />
           <span className="flex flex-col">
             <span className="font-serif text-4xl font-black tracking-tight sm:text-5xl">
-              <span className="text-brand">Fogo</span>info
+              <span className="text-flag-red">Fo</span>
+              <span className="text-gold-text">go</span>
+              <span className="text-brand">info</span>
             </span>
             <span className="mt-1 hidden text-xs uppercase tracking-[0.2em] text-muted sm:block">
               L&apos;actualité guinéenne, africaine et mondiale
