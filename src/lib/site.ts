@@ -11,7 +11,7 @@ export const SITE = {
   },
   reseaux: {
     facebook: "https://www.facebook.com/people/Fogoinfo/61566688390287/",
-    youtube: "https://www.youtube.com/@Fogoinfo",
+    youtube: "",
     tiktok: "",
     x: "",
     instagram: "",
