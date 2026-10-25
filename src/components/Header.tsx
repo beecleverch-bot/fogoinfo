@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { RUBRIQUES } from "@/lib/categories";
 import { MobileMenu } from "./MobileMenu";
@@ -21,12 +22,15 @@ export function Header() {
 
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5">
         <MobileMenu items={NAV} />
-        <Link href="/" className="group flex flex-col items-center sm:items-start">
-          <span className="font-serif text-4xl font-black tracking-tight sm:text-5xl">
-            <span className="text-brand">Fogo</span>info
-          </span>
-          <span className="mt-1 hidden text-xs uppercase tracking-[0.2em] text-muted sm:block">
-            L&apos;actualité guinéenne, africaine et mondiale
+        <Link href="/" className="group flex items-center gap-3">
+          <Image src="/logo.png" alt="" width={72} height={72} priority className="h-14 w-14 sm:h-[72px] sm:w-[72px]" />
+          <span className="flex flex-col">
+            <span className="font-serif text-4xl font-black tracking-tight sm:text-5xl">
+              <span className="text-brand">Fogo</span>info
+            </span>
+            <span className="mt-1 hidden text-xs uppercase tracking-[0.2em] text-muted sm:block">
+              L&apos;actualité guinéenne, africaine et mondiale
+            </span>
           </span>
         </Link>
         <form action="/recherche" className="hidden items-center md:flex">
