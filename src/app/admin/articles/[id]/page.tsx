@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { buttonClass, Field, inputClass, useAdmin } from "@/components/admin/AdminGate";
 import { ImageUpload } from "@/components/admin/ImageUpload";
-import { CATEGORIES_ARTICLE, PAYS_SUGGERES } from "@/lib/categories";
+import { PaysOptions } from "@/components/admin/PaysOptions";
+import { CATEGORIES_ARTICLE } from "@/lib/categories";
 
 type Form = {
   titre: string;
@@ -141,19 +142,9 @@ export default function EditArticle() {
           </Field>
           <Field label="Pays" hint={isSuper ? "Seuls les rédacteurs de ce pays pourront le modifier." : undefined}>
             {isSuper ? (
-              <>
-                <input
-                  list="pays-suggeres"
-                  value={form.pays}
-                  onChange={(e) => set("pays", e.target.value)}
-                  className={inputClass}
-                />
-                <datalist id="pays-suggeres">
-                  {PAYS_SUGGERES.map((p) => (
-                    <option key={p} value={p} />
-                  ))}
-                </datalist>
-              </>
+              <select value={form.pays} onChange={(e) => set("pays", e.target.value)} className={inputClass}>
+                <PaysOptions actuel={form.pays} />
+              </select>
             ) : (
               <input value={pays ?? ""} disabled className={`${inputClass} bg-soft`} />
             )}

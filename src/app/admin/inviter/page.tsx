@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { buttonClass, inputClass, useAdmin, type Profil } from "@/components/admin/AdminGate";
-import { PAYS_SUGGERES } from "@/lib/categories";
+import { PaysOptions } from "@/components/admin/PaysOptions";
 import { formatDate } from "@/lib/format";
 
 type Admin = Profil & { email: string; invited_by: string | null; created_at: string };
@@ -83,20 +83,13 @@ export default function InviterAdmin() {
           <option value="redacteur">Rédacteur</option>
           <option value="super">Super admin</option>
         </select>
-        <input
-          list="pays-suggeres"
-          required={role === "redacteur"}
-          disabled={role === "super"}
-          value={role === "super" ? "Tous les pays" : pays}
-          onChange={(e) => setPays(e.target.value)}
-          placeholder="Pays"
-          className={inputClass}
-        />
-        <datalist id="pays-suggeres">
-          {PAYS_SUGGERES.map((p) => (
-            <option key={p} value={p} />
-          ))}
-        </datalist>
+        {role === "super" ? (
+          <input value="Tous les pays" disabled className={inputClass} />
+        ) : (
+          <select value={pays} onChange={(e) => setPays(e.target.value)} className={inputClass}>
+            <PaysOptions actuel={pays} />
+          </select>
+        )}
         <button className={`${buttonClass} whitespace-nowrap`}>Ajouter</button>
       </form>
       {message && <p className="mt-3 rounded bg-leaf/10 p-3 text-sm text-leaf">{message}</p>}
@@ -126,13 +119,13 @@ export default function InviterAdmin() {
                   <option value="super">Super admin</option>
                 </select>
                 {a.role === "redacteur" && (
-                  <input
-                    list="pays-suggeres"
-                    defaultValue={a.pays ?? ""}
-                    onBlur={(e) => e.target.value.trim() !== (a.pays ?? "") && modifier(a, { pays: e.target.value.trim() })}
-                    placeholder="Pays"
-                    className="w-32 rounded border border-line px-2 py-1"
-                  />
+                  <select
+                    value={a.pays ?? ""}
+                    onChange={(e) => modifier(a, { pays: e.target.value })}
+                    className="w-40 rounded border border-line px-2 py-1"
+                  >
+                    <PaysOptions actuel={a.pays} />
+                  </select>
                 )}
                 {!estMoi && (
                   <button onClick={() => retirer(a)} className="text-brand hover:underline">
