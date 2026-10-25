@@ -117,3 +117,7 @@ drop policy if exists "media suppression super" on storage.objects;
 drop policy if exists "media suppression gestion" on storage.objects;
 create policy "media suppression gestion" on storage.objects for delete
   using (bucket_id = 'media' and public.is_gestionnaire());
+
+-- Deuxième compte : l'adresse de la rédaction, en admin (pas super admin).
+insert into public.admins (email, role, pays) values ('fogoinfo24@gmail.com', 'admin', null)
+on conflict (email) do update set role = 'admin', pays = null;
