@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-brand: #c1121f;
-  --color-brand-dark: #8f0d17;
+  --color-brand: #0b7a3b;
+  --color-brand-dark: #075c2b;
+  --color-flag-red: #c1121f;
   --color-ink: #111418;
   --color-muted: #5b6370;
   --color-line: #e5e7eb;
@@ -23,7 +24,7 @@ body {
 .flag-stripe {
   background: linear-gradient(
     90deg,
-    var(--color-brand) 0 33.33%,
+    var(--color-flag-red) 0 33.33%,
     var(--color-gold) 33.33% 66.66%,
     var(--color-leaf) 66.66% 100%
   );
