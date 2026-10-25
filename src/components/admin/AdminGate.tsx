@@ -115,30 +115,47 @@ function Gate({ children }: { children: React.ReactNode }) {
 
 function Login({ supabase }: { supabase: SupabaseClient }) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"password" | "lien">("password");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState("");
+
+  function echec(message: string) {
+    setError(message);
+    setStatus("error");
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
+    if (mode === "password") {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        echec(
+          /invalid login credentials/i.test(error.message)
+            ? "E-mail ou mot de passe incorrect. Pas encore de mot de passe ? Utilisez le lien par e-mail."
+            : error.message,
+        );
+      }
+      return;
+    }
     // Pas de lien pour une adresse inconnue : le quota d'e-mails est limité.
     const { data: autorise, error: erreurCheck } = await supabase.rpc("email_autorise", { adresse: email });
     if (!erreurCheck && autorise === false) {
-      setError("Cette adresse n'a pas accès à l'espace rédaction. Vérifiez l'orthographe, ou demandez à un administrateur de vous ajouter.");
-      setStatus("error");
-      return;
+      return echec(
+        "Cette adresse n'a pas accès à l'espace rédaction. Vérifiez l'orthographe, ou demandez à un administrateur de vous ajouter.",
+      );
     }
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}/admin` },
     });
     if (error) {
-      setError(
+      echec(
         /rate limit/i.test(error.message)
-          ? "Trop de liens envoyés pour le moment. Réessayez dans une heure, ou utilisez le dernier lien reçu par e-mail."
+          ? "Trop de liens envoyés pour le moment. Réessayez dans une heure, ou connectez-vous avec votre mot de passe."
           : error.message,
       );
-      setStatus("error");
     } else {
       setStatus("sent");
     }
@@ -160,15 +177,42 @@ function Login({ supabase }: { supabase: SupabaseClient }) {
             id="email"
             type="email"
             required
+            autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={inputClass}
             placeholder="vous@exemple.com"
           />
+          {mode === "password" && (
+            <>
+              <label className="block text-sm font-semibold" htmlFor="password">
+                Mot de passe
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputClass}
+              />
+            </>
+          )}
           <button disabled={status === "sending"} className={buttonClass}>
-            {status === "sending" ? "Envoi…" : "Recevoir un lien de connexion"}
+            {status === "sending" ? "Patientez…" : mode === "password" ? "Se connecter" : "Recevoir un lien de connexion"}
           </button>
           {status === "error" && <p className="text-sm text-brand">{error}</p>}
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === "password" ? "lien" : "password");
+              setStatus("idle");
+            }}
+            className="block text-sm text-muted underline hover:text-ink"
+          >
+            {mode === "password" ? "Pas de mot de passe ? Recevoir un lien par e-mail" : "J'ai un mot de passe"}
+          </button>
         </form>
       )}
     </Card>
@@ -200,6 +244,7 @@ function Shell({
     { href: "/admin/videos", label: "Vidéos" },
     { href: "/admin/inviter", label: "Administrateurs" },
     { href: "/admin/import", label: "Import Base44" },
+    { href: "/admin/compte", label: "Mot de passe" },
   ].filter((t) => (isSuper || !PAGES_SUPER.includes(t.href)) && (peutGerer || !PAGES_GESTION.includes(t.href)));
   const interdit =
     Boolean(email) &&
