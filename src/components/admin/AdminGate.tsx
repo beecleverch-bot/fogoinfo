@@ -1,15 +1,25 @@
 "use client";
 
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { browserClient, isSupabaseConfigured } from "@/lib/supabase";
 
-export type Profil = { role: "super" | "admin" | "redacteur"; pays: string | null };
+export type Profil = {
+  role: "super" | "admin" | "redacteur";
+  pays: string | null;
+};
 // isSuper : vous seul. peutGerer : super admin ou admin (contenu de tous les pays,
 // vidéos, rédacteurs).
-type Ctx = { supabase: SupabaseClient; email: string; isSuper: boolean; peutGerer: boolean; pays: string | null };
+type Ctx = {
+  supabase: SupabaseClient;
+  email: string;
+  isSuper: boolean;
+  peutGerer: boolean;
+  pays: string | null;
+};
 const AdminContext = createContext<Ctx | null>(null);
 
 export function useAdmin() {
@@ -25,8 +35,8 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
         <Card>
           <h1 className="text-xl font-bold">Mode démonstration</h1>
           <p className="mt-2 text-muted">
-            L&apos;espace rédaction nécessite une base Supabase. Renseignez{" "}
-            <code>NEXT_PUBLIC_SUPABASE_URL</code> et <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> (voir le README).
+            L&apos;espace rédaction nécessite une base Supabase. Renseignez <code>NEXT_PUBLIC_SUPABASE_URL</code> et{" "}
+            <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> (voir le README).
           </p>
         </Card>
       </Shell>
@@ -85,7 +95,8 @@ function Gate({ children }: { children: React.ReactNode }) {
         <Card>
           <h1 className="text-xl font-bold">Accès refusé</h1>
           <p className="mt-2 text-muted">
-            Le compte <strong>{email}</strong> n&apos;est pas administrateur. Demandez à un administrateur de vous inviter.
+            Le compte <strong>{email}</strong> n&apos;est pas administrateur. Demandez à un administrateur de vous
+            inviter.
           </p>
           <button onClick={() => supabase.auth.signOut()} className="mt-4 text-sm font-semibold text-brand">
             Se déconnecter
@@ -129,7 +140,10 @@ function Login({ supabase }: { supabase: SupabaseClient }) {
     e.preventDefault();
     setStatus("sending");
     if (mode === "password") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) {
         echec(
           /invalid login credentials/i.test(error.message)
@@ -200,7 +214,11 @@ function Login({ supabase }: { supabase: SupabaseClient }) {
             </>
           )}
           <button disabled={status === "sending"} className={buttonClass}>
-            {status === "sending" ? "Patientez…" : mode === "password" ? "Se connecter" : "Recevoir un lien de connexion"}
+            {status === "sending"
+              ? "Patientez…"
+              : mode === "password"
+                ? "Se connecter"
+                : "Recevoir un lien de connexion"}
           </button>
           {status === "error" && <p className="text-sm text-brand">{error}</p>}
           <button
@@ -253,20 +271,26 @@ function Shell({
   return (
     <div className="min-h-screen bg-soft">
       <div className="flag-stripe h-1" />
-      <header className="bg-brand-dark text-white">
+      <header className="bg-paper">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <Link href="/admin" className="font-serif text-2xl font-black">
-            Fogoinfo <span className="text-sm font-normal text-white/60">rédaction</span>
+          <Link href="/admin" className="flex items-center gap-2 font-serif text-2xl font-black">
+            <Image src="/logo.png" alt="" width={40} height={40} className="h-10 w-10" />
+            <span>
+              <span className="text-flag-red">Fo</span>
+              <span className="text-gold-text">go</span>
+              <span className="text-brand">info</span>
+            </span>
+            <span className="text-sm font-normal text-muted">rédaction</span>
           </Link>
           <div className="flex items-center gap-4 text-sm">
-            <Link href="/" className="text-white/70 hover:text-white">
+            <Link href="/" className="text-muted hover:text-ink">
               Voir le site ↗
             </Link>
             {email && (
               <>
-                <span className="hidden text-white/50 sm:inline">{email}</span>
-                {badge && <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-gold">{badge}</span>}
-                <button onClick={onSignOut} className="font-semibold text-gold">
+                <span className="hidden text-muted sm:inline">{email}</span>
+                {badge && <span className="rounded bg-brand px-2 py-0.5 text-xs text-white">{badge}</span>}
+                <button onClick={onSignOut} className="font-semibold text-flag-red">
                   Déconnexion
                 </button>
               </>
@@ -274,20 +298,25 @@ function Shell({
           </div>
         </div>
         {email && (
-          <nav className="mx-auto flex max-w-6xl gap-1 px-4">
-            {tabs.map((t) => {
-              const active = t.href === "/admin" ? pathname === "/admin" || pathname.startsWith("/admin/articles") : pathname.startsWith(t.href);
-              return (
-                <Link
-                  key={t.href}
-                  href={t.href}
-                  className={`rounded-t px-4 py-2 text-sm font-semibold ${active ? "bg-soft text-ink" : "text-white/70 hover:text-white"}`}
-                >
-                  {t.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="bg-brand">
+            <nav className="mx-auto flex max-w-6xl flex-wrap gap-1 px-4 pt-2">
+              {tabs.map((t) => {
+                const active =
+                  t.href === "/admin"
+                    ? pathname === "/admin" || pathname.startsWith("/admin/articles")
+                    : pathname.startsWith(t.href);
+                return (
+                  <Link
+                    key={t.href}
+                    href={t.href}
+                    className={`rounded-t px-4 py-2 text-sm font-semibold ${active ? "bg-soft text-ink" : "text-white/70 hover:text-white"}`}
+                  >
+                    {t.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
         )}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8">

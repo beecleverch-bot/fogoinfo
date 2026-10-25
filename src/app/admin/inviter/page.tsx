@@ -5,7 +5,11 @@ import { buttonClass, inputClass, useAdmin, type Profil } from "@/components/adm
 import { PaysOptions } from "@/components/admin/PaysOptions";
 import { formatDate } from "@/lib/format";
 
-type Admin = Profil & { email: string; invited_by: string | null; created_at: string };
+type Admin = Profil & {
+  email: string;
+  invited_by: string | null;
+  created_at: string;
+};
 
 export default function InviterAdmin() {
   const { supabase, email: moi, isSuper } = useAdmin();
@@ -71,20 +75,25 @@ export default function InviterAdmin() {
   return (
     <div className="max-w-3xl">
       <h1 className="font-serif text-3xl font-black">Administrateurs</h1>
-      <ul className="mt-2 space-y-1 text-sm text-muted">
-        <li>
-          <strong>Super admin</strong> (vous seul) : gère tout, y compris les admins et le site.
-        </li>
-        <li>
-          <strong>Admin</strong> : gère les articles de tous les pays, la une, les vidéos, et ajoute ou retire des
-          rédacteurs. Ne peut pas toucher aux admins.
-        </li>
-        <li>
-          <strong>Rédacteur</strong> : ajoute, modifie et supprime uniquement les articles de son pays.
-        </li>
-      </ul>
+      {isSuper && (
+        <ul className="mt-2 space-y-1 text-sm text-muted">
+          <li>
+            <strong>Super admin</strong> (vous seul) : gère tout, y compris les admins et le site.
+          </li>
+          <li>
+            <strong>Admin</strong> : gère les articles de tous les pays, la une, les vidéos, et ajoute ou retire des
+            rédacteurs. Ne peut pas toucher aux admins.
+          </li>
+          <li>
+            <strong>Rédacteur</strong> : ajoute, modifie et supprime uniquement les articles de son pays.
+          </li>
+        </ul>
+      )}
 
-      <form onSubmit={inviter} className="mt-6 grid gap-3 rounded-lg bg-paper p-5 shadow-sm sm:grid-cols-[2fr_1fr_1fr_auto]">
+      <form
+        onSubmit={inviter}
+        className="mt-6 grid gap-3 rounded-lg bg-paper p-5 shadow-sm sm:grid-cols-[2fr_1fr_1fr_auto]"
+      >
         <input
           type="email"
           required
